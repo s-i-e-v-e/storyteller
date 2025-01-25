@@ -4,4 +4,7 @@ version = "0.1.0"
 description = "Simplify LLM-assisted plot development"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = ['nonstd']
+
+[tool.uv.sources]
+nonstd = { git = "https://github.com/s-i-e-v-e/nonstd-py" }

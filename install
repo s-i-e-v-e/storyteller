@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+import os
+
+def check_os():
+    if 'nt' == os.name:
+        print('Sorry. Windows support is planned but not yet operational. Try running under WSL')
+        exit(0)
+
+def get_local_bin():
+    x = os.getenv('XDG_BIN_HOME')
+    if not x:
+        x = os.path.join(os.path.expanduser('~'), '.local', 'bin')
+    return x
+
+def split_path(path: str):
+    xs = path.split('/')
+    parent = '/'.join(xs[:-1])
+    this = xs[-1]
+    return parent, this
+
+def symlink(path: str, this: str):
+    bin_path = os.path.join(get_local_bin(), this)
+    if not os.path.exists(bin_path):
+        os.symlink(path, bin_path)
+def init():
+    check_os()
+    path = os.path.realpath(os.path.abspath(__file__))
+    parent, _ = split_path(path)
+    this = 'storyteller'
+    symlink(os.path.join(parent, this), this)
+
+init()

@@ -1,36 +1,4 @@
-#!/usr/bin/env python
-import os
-import sys
-
-def check_os():
-    if 'nt' == os.name:
-        print('Sorry. Windows support is planned but not yet operational. Try running under WSL')
-        exit(0)
-
-def get_local_bin():
-    x = os.getenv('XDG_BIN_HOME')
-    if not x:
-        x = os.path.join(os.path.expanduser('~'), '.local', 'bin')
-    return x
-
-def split_path(path: str):
-    xs = path.split('/')
-    parent = '/'.join(xs[:-1])
-    this = xs[-1]
-    return parent, this
-
-def symlink(path: str, this: str):
-    bin_path = os.path.join(get_local_bin(), this)
-    if not os.path.exists(bin_path):
-        os.symlink(path, bin_path)
-def init():
-    check_os()
-    path = os.path.realpath(os.path.abspath(__file__))
-    parent, this = split_path(path)
-    symlink(path, this)
-
-    sys.path.append(os.path.join(parent, 'src'))
-    from storyteller import app
-    app.main()
-
-init()
+#!/bin/bash
+path=$(readlink -m $0)
+parent=$(dirname "$path")
+uv run --project $parent "$parent/src/storyteller/app.py"

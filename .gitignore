@@ -1,0 +1,6 @@
+.ignore/
+.fleet/
+.venv/
+.pytest_cache/
+__pycache__/
+*.lock

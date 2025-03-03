@@ -4,37 +4,24 @@ def fix_demented_path_resolution(mod: str):
         if sys.path[i].endswith(f'/src/{mod}'):
             sys.path[i] = '/'.join(sys.path[i].split('/')[:-1])
 
-from dataclasses import dataclass
-@dataclass
-class State:
-    xs: str
-    index: int
+def load_context(file: str):
+    from storyteller.parser import parse_file, Context, Scene, UseScene
 
-def handle_include(f: str):
-    pass
+    parse_context = parse_file(file)
+    ys = [x for x in parse_context.xs if isinstance(x, Context)]
+    c =  ys[-1]
+    # import pprint
+    # pprint.pprint(c)
+    zs = []
 
-def find_last_context(st: State):
-    data = st.xs
-    ix = data.rfind('\\context')
-    iy = data.find('\\end', ix)
-    if ix < 0 or iy < 0:
-        raise Exception
-    ix += len('\\context')
-    return data[ix:iy]
-
-def load_context(st: State):
-    from nonstd import fs
-    st = State(find_last_context(st), 0)
-    while True:
-        ix = st.xs.find('\\include ')
-        if ix == -1:
-            break
-        iy = st.xs.find('\n', ix)
-        ixx = ix + len('\\include ')
-        fn = st.xs[ixx:iy]
-        x = fs.read_text(fn)
-        st.xs = st.xs[:ix] + x + st.xs[iy:]
-    return st.xs
+    for x in c.xs:
+        if isinstance(x, str):
+            zs.append(x)
+        elif isinstance(x, UseScene):
+            zs.append(c.scenes[x.id-1].text)
+        else:
+            raise Exception
+    return "\n".join(zs)
 
 def replace(model: str, file: str):
     from nonstd import fs
@@ -42,8 +29,7 @@ def replace(model: str, file: str):
 
     c = config.load()
     m = c.models[model]
-    st = State(fs.read_text(file), 0)
-    data = load_context(st)
+    data = load_context(file)
     content = llm.query(m, data)
     fs.append_text(file, content)
 

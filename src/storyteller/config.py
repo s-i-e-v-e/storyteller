@@ -11,10 +11,11 @@ class Model:
     url: str
     api_type: str
     api_key: str
+    top_k: int
     top_p: float
     temperature: float
     max_tokens: int
-    keep_alive: str
+    keep_alive: str # ollama
 
 @dataclasses.dataclass
 class Configuration:
@@ -29,7 +30,7 @@ def load() -> Configuration:
     c = Configuration({})
     for k in x.keys():
         d = x[k]
-        c.models[k] = Model(d['name'], d['url'], d['api_type'], d.get('api_key', ''), d.get('top_p', 1.0), d.get('temperature', 1.0), d.get('max_tokens', 4_096), f"{d.get('keep_alive', '10')}m" )
+        c.models[k] = Model(d['name'], d['url'], d['api_type'], d.get('api_key', ''), d.get('top_k', 100), d.get('top_p', 1.0), d.get('temperature', 1.0), d.get('max_tokens', 4_096), f"{d.get('keep_alive', '10')}m" )
 
     return c
 

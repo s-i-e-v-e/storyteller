@@ -10,8 +10,6 @@ def load_context(file: str):
     parse_context = parse_file(file)
     ys = [x for x in parse_context.xs if isinstance(x, Context)]
     c =  ys[-1]
-    # import pprint
-    # pprint.pprint(c)
     zs = []
 
     for x in c.xs:

@@ -57,7 +57,7 @@ def __openai(m: Model, prompt: str):
 def __kobold(m: Model, prompt: str):
     xs = []
     from storyteller.kobold import koboldcpp_generate_streaming
-    for chunk in koboldcpp_generate_streaming(prompt, m.url, 4096, m.max_tokens, m.temperature, m.top_p, m.top_k):
+    for chunk in koboldcpp_generate_streaming(prompt, m.url, m.max_context, m.max_tokens, m.temperature, m.min_p, m.top_p, m.top_k):
         if chunk:
             print(chunk, end="", flush=True)  # Print chunk by chunk without newline
             xs.append(chunk)

@@ -1,7 +1,7 @@
 import requests
 import json
 
-def koboldcpp_generate_streaming(prompt: str, api_url: str, max_context_length: int, max_token_length: int, temperature: float, top_p: float, top_k: int):
+def koboldcpp_generate_streaming(prompt: str, api_url: str, max_context_length: int, max_token_length: int, temperature: float, min_p: float, top_p: float, top_k: int):
     url = f"{api_url}/api/extra/generate/stream"
     headers = {"Content-Type": "application/json"}
     data = {
@@ -9,6 +9,7 @@ def koboldcpp_generate_streaming(prompt: str, api_url: str, max_context_length: 
         "max_context_length": max_context_length,
         "max_length": max_token_length,
         "temperature": temperature,
+        "min_p": min_p,
         "top_p": top_p,
         "top_k": top_k,
         "stream": True  # Important: set to True for streaming

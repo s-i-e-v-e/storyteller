@@ -77,7 +77,8 @@ Reads the file, recursively includes other files, and returns the combined text.
                 raise FileNotFoundError(f"Included file not found: {include_path}")
 
             text = text.replace(match.group(0), include_content, 1)
-
+        idx = text.index('\\end')
+        text = text[0: idx]
         return text
 
     def lex(self) -> TokenStream:
@@ -120,12 +121,15 @@ Parses the token stream and returns a ParseContext object.
                 self.token_stream.next()  # Consume "\\context"
                 context = self._parse_context()
                 parse_context.xs.append(context)
+            elif token.type == "KEYWORD" and token.value == "\\prompt":
+                self.token_stream.next()  # Consume "\\prompt"
+                string = self.token_stream.next().value
+                parse_context.xs[-1].xs.append(string.strip())
             elif token.type == "STRING":
                 string = self.token_stream.next().value
-                parse_context.xs.append(string.strip())
+                parse_context.xs[-1].xs.append(string.strip())
             else:
                 raise ValueError(f"Unexpected token: {token}")
-
         return parse_context
 
     def _parse_context(self) -> Context:
@@ -179,7 +183,6 @@ Parses a use-scene block.
             scene_id = int(match.group(1))
             return UseScene(id=scene_id)
         else:
-            print(token)
             raise ValueError("Expected scene ID after \\use-scene")
 
 def parse_file(filepath: str) -> ParseContext:

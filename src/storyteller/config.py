@@ -7,7 +7,7 @@ CONFIG_FILE = 'storyteller.toml'
 
 @dataclasses.dataclass
 class Model:
-    name: str
+    model_name: str
     url: str
     api_type: str
     api_key: str
@@ -32,7 +32,7 @@ def load() -> Configuration:
     c = Configuration({})
     for k in x.keys():
         d = x[k]
-        c.models[k] = Model(d['name'], d['url'], d['api_type'], d.get('api_key', ''), d.get('top_k', 100), d.get('top_p', 1.0), d.get('min_p', 0.0), d.get('temperature', 1.0), d.get('max_context', 8_192), d.get('max_tokens', 4_096), f"{d.get('keep_alive', '10')}m" )
+        c.models[k] = Model(d['model_name'], d['url'], d['api_type'], d.get('api_key', ''), d.get('top_k', 100), d.get('top_p', 1.0), d.get('min_p', 0.0), d.get('temperature', 1.0), d.get('max_context', 8_192), d.get('max_tokens', 4_096), f"{d.get('keep_alive', '10')}m" )
 
     return c
 

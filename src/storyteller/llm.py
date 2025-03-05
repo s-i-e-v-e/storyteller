@@ -1,3 +1,4 @@
+import requests
 import json
 
 from storyteller.config import Model
@@ -8,10 +9,10 @@ def query(m: Model, prompt: str):
             return __openai(m, prompt)
         case 'ollama':
             return __ollama(m, prompt)
-        case 'kobold':
-            return __kobold(m, prompt)
+        case 'koboldcpp':
+            return __cpp(m, prompt, koboldcpp_generate_streaming)
         case 'llamacpp':
-            return __llamacpp(m, prompt)
+            return __cpp(m, prompt, llamacpp_generate_streaming)
         case _:
             raise Exception
 
@@ -19,7 +20,7 @@ def __ollama(m: Model, prompt: str):
     import requests
     url = f'{m.url}/api/generate'
     in_data = json.dumps({
-        'model': m.name,
+        'model': m.model_name,
         'prompt': prompt,
         'stream': False,
 		'keep_alive': m.keep_alive,
@@ -43,7 +44,7 @@ def __openai(m: Model, prompt: str):
     client = OpenAI(api_key=m.api_key, base_url=m.url)
 
     response = client.chat.completions.create(
-        model=m.name,
+        model=m.model_name,
         messages=[{"role": "user", "content": prompt}],
         top_p=m.top_p,
         temperature=m.temperature,
@@ -61,10 +62,9 @@ def __openai(m: Model, prompt: str):
     xs.append('\n')
     return ''.join(xs)
 
-def __llamacpp(m: Model, prompt: str):
+def __cpp(m: Model, prompt: str, fn_generate_streaming):
     xs = []
-    from storyteller.llamacpp import llamacpp_generate_streaming
-    for chunk in llamacpp_generate_streaming(prompt, m.url, m.max_context, m.max_tokens, m.temperature, m.min_p, m.top_p, m.top_k):
+    for chunk in fn_generate_streaming(prompt, m.url, m.max_tokens, m.temperature, m.min_p, m.top_p, m.top_k):
         if chunk:
             print(chunk, end="", flush=True)  # Print chunk by chunk without newline
             xs.append(chunk)
@@ -72,14 +72,66 @@ def __llamacpp(m: Model, prompt: str):
     xs.append('\n')
     return ''.join(xs)
 
-def __kobold(m: Model, prompt: str):
-    xs = []
-    from storyteller.kobold import koboldcpp_generate_streaming
-    for chunk in koboldcpp_generate_streaming(prompt, m.url, m.max_context, m.max_tokens, m.temperature, m.min_p, m.top_p, m.top_k):
-        if chunk:
-            print(chunk, end="", flush=True)  # Print chunk by chunk without newline
-            xs.append(chunk)
-    print() # New line at end of generation
-    xs.append('\n')
-    return ''.join(xs)
+def koboldcpp_generate_streaming(prompt: str, api_url: str, max_token_length: int, temperature: float, min_p: float, top_p: float, top_k: int):
+    url = f"{api_url}/api/extra/generate/stream"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "prompt": prompt,
+        "max_length": max_token_length,
+        "temperature": temperature,
+        "min_p": min_p,
+        "top_p": top_p,
+        "top_k": top_k,
+        "stream": True  # Important: set to True for streaming
+    }
 
+    try:
+        with requests.post(url, headers=headers, data=json.dumps(data), stream=True) as response:
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+
+            for line in response.iter_lines():
+                if line:  # Filter out keep-alive new lines
+                    try:
+                        decoded_line = line.decode('utf-8').replace('event: message', '').replace('data: ', '').strip()
+                        if decoded_line:
+                            json_data = json.loads(decoded_line)
+                            yield json_data["token"]
+                    except (json.JSONDecodeError, KeyError) as e:
+                        print(f"Error parsing streaming data: {e}, line: {decoded_line}")
+                        yield None  # Or handle the error differently (e.g., break)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error communicating with Koboldcpp: {e}")
+        yield None # Or handle the error differently (e.g., break)
+
+def llamacpp_generate_streaming(prompt: str, api_url: str, max_token_length: int, temperature: float, min_p: float, top_p: float, top_k: int):
+    url = f"{api_url}/completion"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "prompt": prompt,
+        "n_predict": max_token_length,
+        "temperature": temperature,
+        "min_p": min_p,
+        "top_p": top_p,
+        "top_k": top_k,
+        "stream": True  # Important: set to True for streaming
+    }
+
+    try:
+        with requests.post(url, headers=headers, data=json.dumps(data), stream=True) as response:
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+
+            for line in response.iter_lines():
+                if line:  # Filter out keep-alive new lines
+                    try:
+                        decoded_line = line.decode('utf-8').replace('data: ', '').strip()
+                        if decoded_line:
+                            json_data = json.loads(decoded_line)
+                            yield json_data["content"]
+                    except (json.JSONDecodeError, KeyError) as e:
+                        print(f"Error parsing streaming data: {e}, line: {decoded_line}")
+                        yield None  # Or handle the error differently (e.g., break)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error communicating with llamacpp: {e}")
+        yield None # Or handle the error differently (e.g., break)

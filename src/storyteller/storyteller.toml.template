@@ -1,0 +1,50 @@
+[llamacpp]
+# RUN llama-server as follows
+# llama-server --host 127.0.0.1 --port 8080 --gpu-layers 9999 --ctx-size 4096 --model /path/to/model/file/DeepSeek-R1-Distill-Llama-70B.i1-Q4_K_M.gguf
+model_name="llamacpp"
+api_type="llamacpp"
+url="http://localhost:8080"
+min_p=0.015
+temperature=0.5
+max_tokens=4096
+
+[koboldcpp]
+# RUN koboldcpp as follows
+# koboldcpp  --host 127.0.0.1 --port 5001 --gpulayers -1 --contextsize 4096 --model /path/to/model/file/DeepSeek-R1-Distill-Llama-70B.i1-Q4_K_M.gguf
+model_name="koboldcpp"
+api_type="koboldcpp"
+url="http://localhost:5001"
+min_p=0.015
+temperature=0.5
+max_tokens=4096
+
+[o-l3-1]
+model_name="llama3.2:1b"
+api_type="ollama"
+api_key=""
+url="http://localhost:11434"
+top_p=1.0
+top_k=50
+temperature=0.5
+max_tokens=4096
+
+[o-g1-2]
+model_name="gemma:2b"
+api_type="ollama"
+api_key=""
+url="http://localhost:11434"
+top_p=1.0
+top_k=50
+temperature=0.5
+max_tokens=4096
+
+[oai-g1-2]
+# Same gemma-2b running on ollama accessed through the OpenAI API
+model_name="gemma:2b"
+api_type="openai"
+api_key=""
+url="http://localhost:11434"
+top_p=1.0
+top_k=50
+temperature=0.5
+max_tokens=4096

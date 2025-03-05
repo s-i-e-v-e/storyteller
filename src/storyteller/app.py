@@ -5,7 +5,7 @@ def fix_demented_path_resolution(mod: str):
             sys.path[i] = '/'.join(sys.path[i].split('/')[:-1])
 
 def load_context(file: str):
-    from storyteller.parser import parse_file, Context, Scene, UseScene
+    from storyteller.parser import parse_file, Context, UseScene
 
     parse_context = parse_file(file)
     ys = [x for x in parse_context.xs if isinstance(x, Context)]
@@ -21,7 +21,7 @@ def load_context(file: str):
             raise Exception
     return "\n".join(zs)
 
-def replace(model: str, file: str):
+def use(model: str, file: str):
     from nonstd import fs
     from storyteller import config, llm
 
@@ -31,10 +31,31 @@ def replace(model: str, file: str):
     content = llm.query(m, data)
     fs.append_text(file, content)
 
+def render(file: str):
+    print(load_context(file))
+
+def help():
+    """Prints the command-line interface (CLI) help"""
+    print("storyteller: A tool for writing stories")
+    print("\nCommands:")
+    print("  use <model> <path-to-file>  - Use a specified language model to process a given file.")
+    print("                              <model>: The name of the LLM/service to use (e.g., 'koboldcpp', 'llamacpp'). Refer to the storyteller.toml file.")
+    print("                              <path-to-file>: The path to the file you want to process.")
+    print("  render <path-to-file>      - Render the given file  in the terminal after resolving all imports.")
+    print("                              <path-to-file>: The path to the file to render.")
+
 def main():
     import sys
     fix_demented_path_resolution('storyteller')
-    print(sys.argv)
-    replace(sys.argv[1], sys.argv[2])
+    if len(sys.argv) < 2:
+        help()
+        sys.exit(0)
+
+    match sys.argv[1]:
+        case 'use': use(sys.argv[2], sys.argv[3])
+        case 'render': render(sys.argv[2])
+        case _:
+            print("Unknown command: "+sys.argv[1])
+            help()
 
 main()

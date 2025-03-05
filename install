@@ -22,6 +22,7 @@ def symlink(path: str, this: str):
     bin_path = os.path.join(get_local_bin(), this)
     if not os.path.exists(bin_path):
         os.symlink(path, bin_path)
+
 def init():
     check_os()
     path = os.path.realpath(os.path.abspath(__file__))

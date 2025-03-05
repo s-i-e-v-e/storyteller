@@ -24,6 +24,33 @@ class Token:
     type: str  # "KEYWORD" or "STRING"
     value: str
 
+def render_file(filepath: str) -> str:
+    """
+Reads the file, recursively includes other files, and returns the combined text.
+    """
+    try:
+        with open(filepath, "r") as f:
+            text = f.read()
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    while True:
+        match = re.search(r"^\\include\s+(.+)$", text, re.MULTILINE)
+        if not match:
+            break
+
+        include_path = match.group(1).strip()
+        try:
+            with open(include_path, "r") as include_file:
+                include_content = include_file.read()
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Included file not found: {include_path}")
+
+        text = text.replace(match.group(0), include_content, 1)
+    idx = text.index('\\end')
+    text = text[0: idx]
+    return text
+
 @dataclass
 class TokenStream:
     tokens: List[Token]
@@ -50,36 +77,9 @@ class TokenStream:
 class Lexer:
     def __init__(self, filepath: str):
         self.filepath = filepath
-        self.text = self._preprocess(filepath)
+        self.text = render_file(filepath)
         self.pos = 0
         self.text_len = len(self.text)
-
-    def _preprocess(self, filepath: str) -> str:
-        """
-Reads the file, recursively includes other files, and returns the combined text.
-        """
-        try:
-            with open(filepath, "r") as f:
-                text = f.read()
-        except FileNotFoundError:
-            raise FileNotFoundError(f"File not found: {filepath}")
-
-        while True:
-            match = re.search(r"^\\include\s+(.+)$", text, re.MULTILINE)
-            if not match:
-                break
-
-            include_path = match.group(1).strip()
-            try:
-                with open(include_path, "r") as include_file:
-                    include_content = include_file.read()
-            except FileNotFoundError:
-                raise FileNotFoundError(f"Included file not found: {include_path}")
-
-            text = text.replace(match.group(0), include_content, 1)
-        idx = text.index('\\end')
-        text = text[0: idx]
-        return text
 
     def lex(self) -> TokenStream:
         tokens = []

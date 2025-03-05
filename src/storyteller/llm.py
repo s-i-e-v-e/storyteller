@@ -1,5 +1,4 @@
 import json
-import pprint
 
 from storyteller.config import Model
 
@@ -11,6 +10,8 @@ def query(m: Model, prompt: str):
             return __ollama(m, prompt)
         case 'kobold':
             return __kobold(m, prompt)
+        case 'llamacpp':
+            return __llamacpp(m, prompt)
         case _:
             raise Exception
 
@@ -40,19 +41,36 @@ def __ollama(m: Model, prompt: str):
 def __openai(m: Model, prompt: str):
     from openai import OpenAI
     client = OpenAI(api_key=m.api_key, base_url=m.url)
-    messages = []
-    messages.append(prompt)
 
     response = client.chat.completions.create(
         model=m.name,
-        messages=messages,
+        messages=[{"role": "user", "content": prompt}],
         top_p=m.top_p,
         temperature=m.temperature,
         max_tokens=m.max_tokens,
-        stream=False
+        stream=True
     )
-    choice = response.choices[0]
-    return choice.message.content
+
+    xs = []
+    for chunk in response:
+        if chunk.choices:
+            y = chunk.choices[0]
+            print(y, end="", flush=True)  # Print chunk by chunk without newline
+            xs.append(y)
+    print() # New line at end of generation
+    xs.append('\n')
+    return ''.join(xs)
+
+def __llamacpp(m: Model, prompt: str):
+    xs = []
+    from storyteller.llamacpp import llamacpp_generate_streaming
+    for chunk in llamacpp_generate_streaming(prompt, m.url, m.max_context, m.max_tokens, m.temperature, m.min_p, m.top_p, m.top_k):
+        if chunk:
+            print(chunk, end="", flush=True)  # Print chunk by chunk without newline
+            xs.append(chunk)
+    print() # New line at end of generation
+    xs.append('\n')
+    return ''.join(xs)
 
 def __kobold(m: Model, prompt: str):
     xs = []

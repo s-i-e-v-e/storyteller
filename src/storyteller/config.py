@@ -1,7 +1,6 @@
 import dataclasses
-
 import toml
-from nonstd import fs
+from storyteller import fs
 
 CONFIG_FILE = 'storyteller.toml'
 

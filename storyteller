@@ -1,4 +1,5 @@
 #!/bin/bash
 path=$(readlink -m $0)
 parent=$(dirname "$path")
-uv run --project $parent "$parent/src/storyteller/app.py" $*
+app_py="$parent/src/storyteller/app.py"
+uv run --project "$parent" "$app_py" $*

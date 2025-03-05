@@ -1,32 +1,39 @@
 #!/usr/bin/env python
 import os
 
-def check_os():
-    if 'nt' == os.name:
-        print('Sorry. Windows support is planned but not yet operational. Try running under WSL')
-        exit(0)
-
 def get_local_bin():
-    x = os.getenv('XDG_BIN_HOME')
-    if not x:
-        x = os.path.join(os.path.expanduser('~'), '.local', 'bin')
-    return x
-
-def split_path(path: str):
-    xs = path.split('/')
-    parent = '/'.join(xs[:-1])
-    this = xs[-1]
-    return parent, this
+    if os.name == 'nt':
+        appdata = os.getenv('LOCALAPPDATA')
+        if not appdata:
+            appdata = os.path.join(os.path.expanduser('~'), 'AppData', 'Local') # Default LOCALAPPDATA location
+        return os.path.join(appdata, 'Programs')
+    else:
+        x = os.getenv('XDG_BIN_HOME')
+        if not x:
+            x = os.path.join(os.path.expanduser('~'), '.local', 'bin')
+        return x
 
 def symlink(path: str, this: str):
     bin_path = os.path.join(get_local_bin(), this)
-    if not os.path.exists(bin_path):
-        os.symlink(path, bin_path)
+    print(path)
+    print(bin_path)
+    if os.name == 'nt':
+        bin_path += ".bat"  # Add .bat extension on Windows
+        if not os.path.exists(bin_path):
+            # Create a batch file that executes the python script
+            with open(bin_path, "w") as bat_file:
+                path += ".bat"  # Add .bat extension on Windows
+                bat_file.write(f'@echo off\npython "{path}" %*')  # %* passes all arguments
+
+    else:
+        if not os.path.exists(bin_path):
+            os.symlink(path, bin_path)
+
 
 def init():
-    check_os()
-    path = os.path.realpath(os.path.abspath(__file__))
-    parent, _ = split_path(path)
+    parent = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(parent)
+    print(parent)
     this = 'storyteller'
     symlink(os.path.join(parent, this), this)
 

@@ -5,11 +5,6 @@ description = "Simplify LLM-assisted plot development"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    'nonstd',
-    "openai>=1.60.1",
-    "requests>=2.32.3",
-    "toml>=0.10.2",
+    "requests",
+    "toml",
 ]
-
-[tool.uv.sources]
-nonstd = { git = "https://github.com/s-i-e-v-e/nonstd-py" }

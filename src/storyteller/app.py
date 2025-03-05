@@ -22,8 +22,7 @@ def load_context(file: str):
     return "\n".join(zs)
 
 def use(model: str, file: str):
-    from nonstd import fs
-    from storyteller import config, llm
+    from storyteller import config, llm, fs
 
     c = config.load()
     m = c.models[model]

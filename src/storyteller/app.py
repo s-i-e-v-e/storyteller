@@ -34,7 +34,7 @@ def use(model: str, file: str):
 def render(file: str):
     print(load_context(file))
 
-def help():
+def print_help():
     """Prints the command-line interface (CLI) help"""
     print("storyteller: A tool for writing stories")
     print("\nCommands:")
@@ -48,7 +48,7 @@ def main():
     import sys
     fix_demented_path_resolution('storyteller')
     if len(sys.argv) < 2:
-        help()
+        print_help()
         sys.exit(0)
 
     match sys.argv[1]:

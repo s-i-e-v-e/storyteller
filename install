@@ -15,8 +15,6 @@ def get_local_bin():
 
 def symlink(path: str, this: str):
     bin_path = os.path.join(get_local_bin(), this)
-    print(path)
-    print(bin_path)
     if os.name == 'nt':
         bin_path += ".bat"  # Add .bat extension on Windows
         if not os.path.exists(bin_path):
@@ -33,7 +31,6 @@ def symlink(path: str, this: str):
 def init():
     parent = os.path.dirname(os.path.abspath(__file__))
     os.chdir(parent)
-    print(parent)
     this = 'storyteller'
     symlink(os.path.join(parent, this), this)
 

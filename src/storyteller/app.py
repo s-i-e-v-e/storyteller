@@ -1,8 +1,9 @@
 def fix_demented_path_resolution(mod: str):
     import sys
+    import os
     for i in range(len(sys.path)):
-        if sys.path[i].endswith(f'/src/{mod}'):
-            sys.path[i] = '/'.join(sys.path[i].split('/')[:-1])
+        if sys.path[i].endswith(f'{os.sep}src{os.sep}{mod}'):
+            sys.path[i] = os.sep.join(sys.path[i].split(os.sep)[:-1])
 
 def load_context(file: str):
     from storyteller.parser import parse_file, Context, UseScene

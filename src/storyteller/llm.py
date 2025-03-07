@@ -48,7 +48,8 @@ def llamacpp_generate_streaming(m: Model, prompt: str):
         "min_p": m.min_p,
         "top_p": m.top_p,
         "top_k": m.top_k,
-        "stream": True  # Important: set to True for streaming
+        "stream": True,  # Important: set to True for streaming
+        "cache_prompt": True,  # Important: set to True for streaming
     }
     return __streaming_core(url, data)
 

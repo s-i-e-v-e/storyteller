@@ -6,33 +6,53 @@ def fix_demented_path_resolution(mod: str):
             sys.path[i] = os.sep.join(sys.path[i].split(os.sep)[:-1])
 
 def load_context(file: str):
-    from storyteller.parser import parse_file, Context, UseScene
+    from parser import parse_file, User, Assistant, UseScene
 
-    parse_context = parse_file(file)
-    ys = [x for x in parse_context.xs if isinstance(x, Context)]
-    c =  ys[-1]
-    zs = []
+    messages = []
+    xs = parse_file(file)
+    c =  xs[-1]
 
+    messages.append({"role": "assistant", "content": "I am a helpful AI assistant. My goal is to help you in any way you want without judgment."})
     for x in c.xs:
-        if isinstance(x, str):
-            zs.append(x)
-        elif isinstance(x, UseScene):
-            zs.append(c.scenes[x.id-1].text)
+        if isinstance(x, User):
+            zs = []
+            for y in x.xs:
+                if isinstance(y, str):
+                    zs.append(y)
+                elif isinstance(y, UseScene):
+                    zs.append('\n')
+                    zs.append(c.scenes[y.value-1].value)
+                else:
+                    raise Exception
+            messages.append({"role": "user", "content": "\n".join(zs)})
+        elif isinstance(x, Assistant):
+            messages.append({"role": "assistant", "content": x.value})
         else:
             raise Exception
-    return "\n".join(zs)
+    return messages
 
 def use(model: str, file: str):
-    from storyteller import config, llm, fs
+    import config, llm, fs
 
     c = config.load()
     m = c.models[model]
-    data = load_context(file)
-    content = llm.query(m, data)
-    fs.append_text(file, content)
+    messages = load_context(file)
+    content = llm.query(m, messages)
+    fs.append_text(file, '\n\n\\assistant\n'+content)
 
 def render(file: str):
-    print(load_context(file))
+    xs = []
+    xs.append('\\context')
+    xs.append('\n')
+    messages = load_context(file)
+    for x in messages:
+        xs.append('\\'+x['role'])
+        xs.append('\n')
+        xs.append(x['content'])
+        xs.append('\n')
+        xs.append('\n')
+
+    print("".join(xs))
 
 def print_help():
     """Prints the command-line interface (CLI) help"""

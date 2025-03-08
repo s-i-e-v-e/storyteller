@@ -1,9 +1,9 @@
 import requests
 import json
 
-from storyteller.config import Model
+from config import Model
 
-def query(m: Model, prompt: str):
+def query(m: Model, prompt: list[dict[str,str]]):
     match m.api_type:
         case 'ollama':
             return generate(m, prompt, ollama_generate_streaming)
@@ -16,7 +16,7 @@ def query(m: Model, prompt: str):
         case _:
             raise Exception
 
-def generate(m: Model, prompt: str, fn_generate_streaming):
+def generate(m: Model, prompt: list[dict[str,str]], fn_generate_streaming):
     xs = []
     for chunk in fn_generate_streaming(m, prompt):
         if chunk:
@@ -26,7 +26,8 @@ def generate(m: Model, prompt: str, fn_generate_streaming):
     xs.append('\n')
     return ''.join(xs)
 
-def koboldcpp_generate_streaming(m: Model, prompt: str):
+def koboldcpp_generate_streaming(m: Model, messages: list[dict[str,str]]):
+    prompt = messages[-1]["content"]
     url = f"{m.url}/api/extra/generate/stream"
     data = {
         "prompt": prompt,
@@ -35,29 +36,36 @@ def koboldcpp_generate_streaming(m: Model, prompt: str):
         "min_p": m.min_p,
         "top_p": m.top_p,
         "top_k": m.top_k,
+        "typical": m.typ_p,
+        "xtc_threshold": m.xtc_t,
+        "xtc_probablilty": m.xtc_p,
         "stream": True  # Important: set to True for streaming
     }
     return __streaming_core(url, data)
 
-def llamacpp_generate_streaming(m: Model, prompt: str):
-    url = f"{m.url}/completion"
+def llamacpp_generate_streaming(m: Model, messages: list[dict[str,str]]):
+    url = f"{m.url}/v1/chat/completions"
     data = {
-        "prompt": prompt,
-        "n_predict": m.max_tokens,
+        "model": m.model_name,
+        "messages": messages,
+        "max_tokens": m.max_tokens,
         "temperature": m.temperature,
         "min_p": m.min_p,
         "top_p": m.top_p,
         "top_k": m.top_k,
+        "typical_p": m.typ_p,
+        "xtc_threshold": m.xtc_t,
+        "xtc_probability": m.xtc_p,
         "stream": True,  # Important: set to True for streaming
         "cache_prompt": True,  # Important: set to True for streaming
     }
     return __streaming_core(url, data)
 
-def openai_generate_streaming(m: Model, prompt: str):
+def openai_generate_streaming(m: Model, messages: list[dict[str,str]]):
     url = f"{m.url}/v1/chat/completions"
     data = {
         "model": m.model_name,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": messages,
         "top_p": m.top_p,
         "max_tokens": m.max_tokens,
         "temperature": m.temperature,
@@ -65,17 +73,18 @@ def openai_generate_streaming(m: Model, prompt: str):
     }
     return __streaming_core(url, data)
 
-def ollama_generate_streaming(m: Model, prompt: str):
-    url = f'{m.url}/api/generate'
+def ollama_generate_streaming(m: Model, messages: list[dict[str,str]]):
+    url = f'{m.url}/api/chat'
     data = {
         'model': m.model_name,
-        'prompt': prompt,
+        'messages': messages,
         'stream': True,
         'keep_alive': m.keep_alive,
         'options': {
             'min_p': m.min_p,
             'top_p': m.top_p,
             'top_k': m.top_k,
+            "typical_p": m.typ_p,
             'temperature': m.temperature,
             'num_predict': m.max_tokens,
         }

@@ -79,4 +79,4 @@ This will install:
 
 # Step 4
 
-You can now use `storyteller` in any directory on your computer as ong as it has an appropriately configured `storyteller.toml` file.
+You can now use `storyteller` in any directory on your computer as long as it has an appropriately configured `storyteller.toml` file.

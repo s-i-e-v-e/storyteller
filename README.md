@@ -16,11 +16,11 @@ A text file can contain the following:
 
 - `\scene` blocks contain scene information. All `\scene`s across the file are pulled out of the text sequence and collected together in a single list.
 
- They are not included in any prompt unless a `\use-scene <number>` statement makes use of it.
+  They are not included in any prompt unless a `\use-scene <number>` statement makes use of it.
 
- You can thus put all your scenes in a single file in chronological order and `\include` this file in the first `\user` block.
+  You can thus put all your scenes in a single file in chronological order and `\include` this file in the first `\user` block.
 
- You can then call upon specific scenes in any `\user` blocks with a `\use-scene`
+  You can then call upon specific scenes in any `\user` blocks with a `\use-scene`
 
 # EXAMPLES
 

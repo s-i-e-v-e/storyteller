@@ -2,7 +2,7 @@ import requests
 import json
 
 from config import Model
-from storyteller.parser import raise_error
+from parser import raise_error
 
 def query(m: Model, prompt: list[dict[str,str]]):
     match m.api_type:

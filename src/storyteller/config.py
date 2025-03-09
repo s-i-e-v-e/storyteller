@@ -44,8 +44,8 @@ def load() -> Configuration:
             d.get('min_p', 0.0),
             d.get('typ_p', 1.0),
             d.get('temperature', 1.0),
-            d.get('xtc_t', 1.0),
-            d.get('xtc_p', 1.0),
+            d.get('xtc_threshold', 1.0),
+            d.get('xtc_probability', 1.0),
             d.get('max_context', 8_192),
             d.get('max_tokens', 4_096),
             f"{d.get('keep_alive', '10')}m"

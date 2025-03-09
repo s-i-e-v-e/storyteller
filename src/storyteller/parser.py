@@ -35,7 +35,7 @@ Reads the file, recursively includes other files, and returns the combined text.
     try:
         with open(filepath, "r") as f:
             text = f.read()
-            text += "\\end"
+            text = "\\context\n"+text+"\\end"
     except FileNotFoundError:
         raise_error(f"File not found: {filepath}")
 

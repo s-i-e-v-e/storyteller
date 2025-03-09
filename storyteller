@@ -2,4 +2,4 @@
 path=$(readlink -m $0)
 parent=$(dirname "$path")
 app_py="$parent/src/storyteller/app.py"
-uv run --project "$parent" "$app_py" $*
+uv run --python pypy3.11 --project "$parent" "$app_py" $*

@@ -56,6 +56,7 @@ Install uv
 
 ## Step 2
 Clone this repository using
+
     git clone https://github.com/s-i-e-v-e/storyteller.git
 
 Or download [this zip file](https://github.com/s-i-e-v-e/storyteller/archive/refs/heads/main.zip) and extract it somewhere. And give the folder a name like `storyteller`

@@ -11,6 +11,6 @@ REM Construct the full path to the app.py file
 set "app_py=%parent_dir%\src\storyteller\app.py"
 
 REM Run the uv command
-uv run --project "%parent_dir%" "%app_py%" %*
+uv run --python pypy3.11 --project "%parent_dir%" "%app_py%" %*
 
 endlocal

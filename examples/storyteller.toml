@@ -1,0 +1,16 @@
+[test]
+# RUN llama-server as follows
+# llama-server --host 127.0.0.1 --port 8080 --gpu-layers 9999 --ctx-size 4096 --model /path/to/model/file/Tiny-LLM.Q4_K_M.gguf
+# Tiny-LLM.Q4_K_M.gguf (https://huggingface.co/mradermacher/Tiny-LLM-GGUF/resolve/main/Tiny-LLM.Q4_K_M.gguf?download=true) is used here as an example.
+model_name="llamacpp"
+api_type="llamacpp"
+api_key=""
+url="http://localhost:5001"
+min_p=0.02
+top_p=1.0
+top_k=0
+typ_p=1.0
+xtc_threshold=1.0
+xtc_probability=1.0
+temperature=0.5
+max_tokens=4096

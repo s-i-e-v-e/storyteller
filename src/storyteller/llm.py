@@ -2,6 +2,7 @@ import requests
 import json
 
 from config import Model
+from storyteller.parser import raise_error
 
 def query(m: Model, prompt: list[dict[str,str]]):
     match m.api_type:
@@ -14,7 +15,7 @@ def query(m: Model, prompt: list[dict[str,str]]):
         case 'llamacpp':
             return generate(m, prompt, llamacpp_generate_streaming)
         case _:
-            raise Exception
+            raise_error("Unknown api_type found in TOML file: "+m.api_type)
 
 def generate(m: Model, prompt: list[dict[str,str]], fn_generate_streaming):
     xs = []
@@ -121,12 +122,9 @@ def __streaming_core(url: str, data: dict):
                                 elif "content" in json_data["choices"][0]:
                                     yield json_data["choices"][0]["content"]
                             else:
-                                print(f"Unexpected JSON structure: {json_data}")
-                                raise Exception
+                                raise_error(f"Unexpected JSON structure: {json_data}")
                     except (json.JSONDecodeError, KeyError) as e:
-                        print(f"Error parsing streaming data: {e}, line: {decoded_line}")
-                        yield None  # Or handle the error differently (e.g., break)
+                        raise_error(f"Error parsing streaming data: {e}, line: {decoded_line}")
 
     except requests.exceptions.RequestException as e:
-        print(f"Error communicating with endpoint: {e}")
-        yield None # Or handle the error differently (e.g., break)
+        raise_error(f"Error communicating with endpoint: {e}")

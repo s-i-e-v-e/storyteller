@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from typing import List, Union, Optional
+from typing import List, NoReturn, Union, Optional
 
 @dataclass
 class Token:
@@ -37,7 +37,7 @@ Reads the file, recursively includes other files, and returns the combined text.
             text = f.read()
             text += "\\end"
     except FileNotFoundError:
-        raise FileNotFoundError(f"File not found: {filepath}")
+        raise_error(f"File not found: {filepath}")
 
     while True:
         match = re.search(r"^\\include\s+(.+)$", text, re.MULTILINE)
@@ -49,9 +49,10 @@ Reads the file, recursively includes other files, and returns the combined text.
             with open(include_path, "r") as include_file:
                 include_content = include_file.read()
         except FileNotFoundError:
-            raise FileNotFoundError(f"Included file not found: {include_path}")
+            raise_error(f"Included file not found: {include_path}")
 
         text = text.replace(match.group(0), include_content, 1)
+
     idx = text.index('\\end')
     text = text[0: idx]
     return text
@@ -99,7 +100,7 @@ def parse(tokens: List[Token]) -> List[Context]:
             context, i = parse_context(tokens, i + 1)
             contexts.append(context)
         else:
-            raise Exception
+            raise_error("\\context block not found")
             i += 1  # Skip unexpected tokens
     return contexts
 
@@ -120,8 +121,7 @@ def parse_context(tokens: List[Token], start_index: int) -> tuple[Context, int]:
         elif tokens[i].type == 'KEYWORD' and tokens[i].value == '\\context':
             break # End current context
         else:
-            print(tokens[i])
-            raise Exception
+            raise_error("Context can only contain \\include <filename> statements, and \\user & \\assistant blocks")
             i += 1
     return Context(scenes, xs), i
 
@@ -177,13 +177,12 @@ def parse_use_scene(tokens: List[Token], start_index: int) -> tuple[UseScene, in
             y = tokens[start_index].value+"\n"
             idx = y.find('\n')
             number = int(y[0:idx])
-            tokens[start_index].value = y[idx]
+            tokens[start_index].value = y[idx:]
             return UseScene(number), start_index
         except ValueError:
-            raise Exception
+            raise_error("Expected syntax: \\use-scene <number>")
     else:
-        raise Exception
-        return UseScene(0), start_index  # default value
+        raise_error("Expected syntax: \\use-scene <number>")
 
 def parse_file(filepath: str) -> list[Context]:
     """
@@ -191,3 +190,8 @@ Parses a file and returns a list of Context objects.
     """
     tokens = lex(render_file(filepath))
     return parse(tokens)
+
+def raise_error(x: str) -> NoReturn:
+    print(x)
+    import sys
+    sys.exit(-1)

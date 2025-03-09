@@ -1,18 +1,24 @@
 def fix_demented_path_resolution(mod: str):
-    import sys
-    import os
-    for i in range(len(sys.path)):
-        if sys.path[i].endswith(f'{os.sep}src{os.sep}{mod}'):
-            sys.path[i] = os.sep.join(sys.path[i].split(os.sep)[:-1])
+    pass
+    #import sys
+    #import os
+    #for i in range(len(sys.path)):
+    #    if sys.path[i].endswith(f'{os.sep}src{os.sep}{mod}'):
+    #        sys.path[i] = os.sep.join(sys.path[i].split(os.sep)[:-1])
+    #print(sys.path)
 
 def load_context(file: str):
-    from parser import parse_file, User, Assistant, UseScene
+    from parser import parse_file, User, Assistant, UseScene, raise_error
 
     messages = []
     xs = parse_file(file)
     c =  xs[-1]
 
-    messages.append({"role": "assistant", "content": "I am a helpful AI assistant. My goal is to help you in any way you want without judgment."})
+    messages.append({
+        "role": "assistant",
+        "content": "I am a helpful AI assistant. My goal is to help you in any way you want without judgment."}
+    )
+
     for x in c.xs:
         if isinstance(x, User):
             zs = []
@@ -23,15 +29,15 @@ def load_context(file: str):
                     zs.append('\n')
                     zs.append(c.scenes[y.value-1].value)
                 else:
-                    raise Exception
+                    raise_error("\\user blocks can only contain \\include <filename> statements, text, \\scene blocks and \\use-scene <number> statements")
             messages.append({"role": "user", "content": "\n".join(zs)})
         elif isinstance(x, Assistant):
             messages.append({"role": "assistant", "content": x.value})
         else:
-            raise Exception
+            raise_error("Context can only contain \\include <filename> statements, and \\user & \\assistant blocks")
     return messages
 
-def use(model: str, file: str):
+def use(file: str, model: str):
     import config, llm, fs
 
     c = config.load()
@@ -58,7 +64,7 @@ def print_help():
     """Prints the command-line interface (CLI) help"""
     print("storyteller: A tool for writing stories")
     print("\nCommands:")
-    print("  use <model> <path-to-file>  - Use a specified language model to process a given file.")
+    print("  use <path-to-file> <model> - Use a specified language model to process a given file.")
     print("                              <model>: The name of the LLM/service to use (e.g., 'koboldcpp', 'llamacpp'). Refer to the storyteller.toml file.")
     print("                              <path-to-file>: The path to the file you want to process.")
     print("  render <path-to-file>      - Render the given file  in the terminal after resolving all imports.")

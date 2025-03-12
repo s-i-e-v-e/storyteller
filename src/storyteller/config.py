@@ -2,8 +2,6 @@ import dataclasses
 import toml
 import fs
 
-CONFIG_FILE = 'storyteller.toml'
-
 @dataclasses.dataclass
 class Model:
     model_name: str
@@ -25,9 +23,9 @@ class Model:
 class Configuration:
     models: dict[str, Model]
 
-def load() -> Configuration:
-    if fs.exists(CONFIG_FILE):
-        x = toml.loads(fs.read_text(CONFIG_FILE))
+def load(file: str) -> Configuration:
+    if fs.exists(file):
+        x = toml.loads(fs.read_text(file))
     else:
         x = {}
 
@@ -52,6 +50,3 @@ def load() -> Configuration:
         )
 
     return c
-
-def store(x: dict):
-    fs.write_text(CONFIG_FILE, toml.dumps(x))

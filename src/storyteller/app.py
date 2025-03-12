@@ -37,10 +37,9 @@ def load_context(file: str):
             raise_error("Context can only contain \\include <filename> statements, and \\user & \\assistant blocks")
     return messages
 
-def use(file: str, model: str):
-    import config, llm, fs
+def use(file: str, model: str, c):
+    import llm, fs
 
-    c = config.load()
     m = c.models[model]
     messages = load_context(file)
     content = llm.query(m, messages)
@@ -77,8 +76,18 @@ def main():
         print_help()
         sys.exit(0)
 
+    import config
+    if sys.argv[1] == '--config':
+        c = config.load(sys.argv[2])
+        xs = []
+        xs.append(sys.argv[0])
+        xs.extend(sys.argv[3:])
+        sys.argv = xs
+    else:
+        c = config.load("storyteller.toml")
+
     match sys.argv[1]:
-        case 'use': use(sys.argv[2], sys.argv[3])
+        case 'use': use(sys.argv[2], sys.argv[3], c)
         case 'render': render(sys.argv[2])
         case _:
             print("Unknown command: "+sys.argv[1])

@@ -53,8 +53,16 @@ Reads the file, recursively includes other files, and returns the combined text.
 
         text = text.replace(match.group(0), include_content, 1)
 
+    while True:
+        n = text.find('\\*')
+        if n < 0:
+            break
+        nn = text.find('*\\', n)
+        text = text[0: n] + text[nn+2:]
+
     idx = text.index('\\end')
     text = text[0: idx]
+    text = text.strip()
     return text
 
 
@@ -62,7 +70,7 @@ def lex(text: str) -> list[Token]:
     """Lexes the input text into a list of Token objects."""
 
     tokens: List[Token] = []
-    keywords = ['\\context\n', '\\user\n', '\\assistant\n', '\\scene\n', '\\use-scene']
+    keywords = ['\\context\n', '\\user\n', '\\assistant\n', '\\scene\n', '\\use-scene', '\\characters']
 
     def add_str_token(x: str):
         if len(tokens) and tokens[-1].type == "STRING":
@@ -120,6 +128,8 @@ def parse_context(tokens: List[Token], start_index: int) -> tuple[Context, int]:
             xs.append(x)
         elif tokens[i].type == 'KEYWORD' and tokens[i].value == '\\context':
             break # End current context
+        elif tokens[i].type == 'STRING' and tokens[i].value == '':
+            i += 1
         else:
             raise_error("Context can only contain \\include <filename> statements, and \\user & \\assistant blocks")
             i += 1
@@ -138,6 +148,8 @@ def parse_user(tokens: List[Token], scenes: list[Scene], start_index: int) -> tu
         elif tokens[i].type == 'KEYWORD' and tokens[i].value == '\\use-scene':
             x, i = parse_use_scene(tokens, i + 1)
             xs.append(x)
+        elif tokens[i].type == 'KEYWORD' and tokens[i].value == '\\characters':
+            i += 1
         elif tokens[i].type == 'STRING':
             xs.append(tokens[i].value)
             i += 1

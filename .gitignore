@@ -1,5 +1,7 @@
 .ignore/
 .fleet/
+.idea/
+.python-version
 .venv/
 .pytest_cache/
 __pycache__/

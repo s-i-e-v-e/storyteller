@@ -11,6 +11,10 @@ def exists(path: str):
     return p.exists()
 
 
+def try_read_text(path: str):
+    return read_text(path) if exists(path) else ""
+
+
 def read_text(path: str):
     try:
         with open(path, "r") as f:

@@ -2,44 +2,28 @@ import fs
 from parser import Node, parse
 
 
-def consume(n: Node, messages: list[str], output: str):
+def consume(n: Node, output_len: int, messages: list[str], output: str):
     output = output.strip()
 
-    if n.do_reset:
-        fs.archive_file(n.output)
-        fs.archive_file(n.log)
-
-    if n.summarize:
-        xs = ""
-        xs += "\n\n"
-        xs += "\\summary\n"
+    if n.do_summarize:
+        xs = "\n\\summary\n"
         xs += output
-        fs.append_text(n.summary, xs)
+        fs.append_text(n.summary_file, xs)
     else:
-        xs = ""
-        xs += "\n\n"
-        xs += "\\assistant\n"
+        xs = "\n\\assistant\n"
         xs += output
-        fs.append_text(n.output, xs)
-        messages.append({"role": "assistant", "content": output})
+        fs.append_text(n.output_file, xs)
 
-        xs = ""
-        for x in messages:
-            xs += "\n"
-            xs += "\\"
-            xs += x["role"]
-            xs += "\n"
-            xs += x["content"]
-        fs.write_text(n.log, xs)
+        fs.append_text("main.md", f"\n\\assistant {output_len}\n")
 
 
 def use(file: str, model: str, c):
     import llm
 
     m = c.models[model]
-    messages, n = parse(file)
+    messages, n, output_len = parse(file)
     content = llm.query(m, messages)
-    consume(n, messages, content)
+    consume(n, output_len, messages, content)
 
 
 def render(file: str):

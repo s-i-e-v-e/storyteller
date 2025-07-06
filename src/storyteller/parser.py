@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast
+from typing import Type, cast
 
 import fs
 
@@ -48,22 +48,22 @@ class CharStream:
 
 
 @dataclass
-class DefineSummary:
+class DefineSummaryFile:
     file: str
 
 
 @dataclass
-class DefineScene:
+class DefineSceneFile:
     file: str
 
 
 @dataclass
-class DefineLog:
+class DefineLogFile:
     file: str
 
 
 @dataclass
-class DefineOutput:
+class DefineOutputFile:
     file: str
 
 
@@ -88,8 +88,9 @@ class IncludeSummary:
 
 
 @dataclass
-class System:
-    val: str
+class Assistant:
+    number: int
+    xs: list["Include|IncludeScene|IncludeSummary|str"]
 
 
 @dataclass
@@ -115,14 +116,13 @@ class Summarize:
 @dataclass
 class Node:
     id: str
-    summary: str
-    scene: str
-    output: str
-    log: str
+    summary_file: str
+    scene_file: str
+    output_file: str
+    log_file: str
     summary_prompt: str
-    do_reset: bool
-    summarize: bool
-    xs: list[Main | User | Reset]
+    do_summarize: bool
+    xs: list[Main | User | Assistant]
 
 
 def __parse_atom(cs: CharStream, first: str, next: str):
@@ -139,7 +139,7 @@ def __parse_atom(cs: CharStream, first: str, next: str):
             xs += cs.next()
         else:
             break
-    return xs
+    return xs.strip()
 
 
 def __parse_file_name(cs: CharStream):
@@ -186,33 +186,42 @@ def __parse_prompt(cs: CharStream):
             break
         else:
             xs += cs.next()
-    return xs
+    return xs.strip()
 
 
 def __parse_define(
     cs: CharStream,
-) -> DefineSummary | DefineScene | DefineOutput | DefineLog:
+) -> DefineSummaryFile | DefineSceneFile | DefineOutputFile | DefineLogFile:
     cs.skip_ws()
     id = __parse_id(cs)
-    cs.skip_ws()
-    start = cs.i
-    file = __parse_file_name(cs)
-    if id == "summary":
-        return DefineSummary(file)
-    elif id == "scene":
-        return DefineScene(file)
-    elif id == "output":
-        return DefineOutput(file)
-    elif id == "log":
-        return DefineLog(file)
-    elif id == "summarize":
-        cs.rewind(start)
-        return DefineSummaryPrompt(__parse_prompt(cs))
+    if id == "file":
+        cs.skip_ws()
+        id = __parse_id(cs)
+        cs.skip_ws()
+        file = __parse_file_name(cs)
+        if id == "summary":
+            return DefineSummaryFile(file)
+        elif id == "scene":
+            return DefineSceneFile(file)
+        elif id == "output":
+            return DefineOutputFile(file)
+        elif id == "log":
+            return DefineLogFile(file)
+        else:
+            raise Exception(f"Unknown definition {id}")
+    elif id == "prompt":
+        cs.skip_ws()
+        id = __parse_id(cs)
+        cs.skip_ws()
+        if id == "summary":
+            return DefineSummaryPrompt(__parse_prompt(cs))
+        else:
+            raise Exception(f"Unknown definition {id}")
     else:
         raise Exception(f"Unknown definition {id}")
 
 
-def __parse_system(cs: CharStream) -> System:
+def __parse_assistant(cs: CharStream) -> Assistant:
     xs = ""
     while not cs.eos():
         start = cs.i
@@ -227,7 +236,7 @@ def __parse_system(cs: CharStream) -> System:
 
         else:
             xs += cs.next()
-    return System(xs)
+    return Assistant(-1, [xs.strip()])
 
 
 def __parse_main(cs: CharStream) -> Main:
@@ -246,15 +255,12 @@ def __parse_main(cs: CharStream) -> Main:
                     n.xs.append(xs)
                     xs = ""
                     n.xs.append(__parse_include(cs))
-                elif id == "reset":
-                    n.xs.append(Reset(0))
-                elif id == "summarize":
-                    n.xs.append(Summarize(0))
                 else:
                     cs.rewind(start)
                     break
         else:
             xs += cs.next()
+    xs = xs.strip()
     if xs:
         n.xs.append(xs)
     return n
@@ -266,11 +272,10 @@ def __parse_user(cs: CharStream) -> User:
 
 
 def __parse_user_commands(n: Node):
-    scene = fs.read_text(n.scene).split("\scene")
-    summary = fs.read_text(n.summary).split("\summary")
+    scene = fs.try_read_text(n.scene_file).split("\scene")
+    summary = fs.try_read_text(n.summary_file).split("\summary")
 
     for x in n.xs:
-        is_last = x == n.xs[-1]
         ty = type(x)
         if ty is Main or ty is User:
             ys = []
@@ -281,10 +286,6 @@ def __parse_user_commands(n: Node):
                 elif type(y) is IncludeSummary:
                     z = cast(IncludeSummary, y)
                     ys.append(summary[z.number])
-                elif type(y) is Reset and is_last:
-                    n.do_reset = True
-                elif type(y) is Summarize and is_last:
-                    n.summarize = True
                 else:
                     ys.append(y)
             x.xs.clear()
@@ -310,45 +311,53 @@ def __parse_file_includes(n: Node):
 
 
 def __build_messages(n: Node) -> list[str]:
-    log = fs.read_text(n.log) if fs.exists(n.log) else ""
-    if not log:
-        ys = [x for x in n.xs if type(x) is Main]
-        for y in ys:
-            log += "\\user\n"
-            log += "".join(y.xs).strip()
-            log += "\n"
+    def get_text(ty: Type, x: any):
+        return "".join(cast(ty, x).xs).strip()
 
-    a = n.xs[-1]
-    assert type(a) is User or type(a) is Main
-    z = cast(User, a)
+    def handle_reset():
+        n.xs.reverse()
+        try:
+            j = n.xs.index(Reset(0))
+        except ValueError:
+            j = -1
+        if j >= 0:
+            n.xs = n.xs[0:j]
+        n.xs.reverse()
 
-    log += "\\user\n"
-    log += "".join(z.xs).strip()
-    log += "\n"
+    handle_reset()
 
-    if n.summarize:
-        log += n.summary_prompt
-        log += "\n"
+    output = fs.try_read_text(n.output_file).split("\\assistant")[1:]
 
-    USER = "user\n"
-    ASSISTANT = "assistant\n"
     messages = []
-    for x in (
-        log.replace("\n\n", "\n")
-        .replace("\\user", "\\$user")
-        .replace("\\assistant", "\\$assistant")
-        .split("\\$")
-    ):
-        x = x.strip()
-        if x.startswith(USER):
-            messages.append({"role": "user", "content": x[len(USER) :]})
-        elif x.startswith(ASSISTANT):
-            messages.append({"role": "assistant", "content": x[len(ASSISTANT) :]})
-        elif not x:
-            pass
+    for x in n.xs:
+        ty_x = type(x)
+        if ty_x is User:
+            y = get_text(User, x)
+            messages.append({"role": "user", "content": y})
+        elif ty_x is Main:
+            y = get_text(User, x)
+            messages.append({"role": "user", "content": y})
+        elif ty_x is Assistant:
+            x = cast(Assistant, x)
+            if x.number >= 0:
+                y = output[x.number]
+            else:
+                y = get_text(Assistant, x)
+            messages.append({"role": "assistant", "content": y})
+        elif ty_x is Summarize:
+            n.do_summarize = True
         else:
+            print(type(x))
             raise Exception
-    return messages, n
+
+        if ty_x is not Summarize:
+            # a \user \assistant block supercedes these commands
+            n.do_summarize = False
+
+    if n.do_summarize:
+        assert n.summary_prompt.strip()
+        messages.append({"role": "user", "content": n.summary_prompt})
+    return messages, n, len(output)
 
 
 def __loop(cs: CharStream) -> Node:
@@ -358,8 +367,7 @@ def __loop(cs: CharStream) -> Node:
         "scene.md",
         "output.md",
         "chat.log",
-        "# SUMMARIZE\nSummarize the contents of the context",
-        False,
+        "",
         False,
         [],
     )
@@ -371,28 +379,36 @@ def __loop(cs: CharStream) -> Node:
             id = __parse_id(cs)
             if id == "define":
                 q = __parse_define(cs)
-                if type(q) is DefineScene:
-                    n.scene = q.file
-                elif type(q) is DefineSummary:
-                    n.summary = q.file
-                elif type(q) is DefineOutput:
-                    n.output = q.file
-                elif type(q) is DefineLog:
-                    n.log = q.file
+                if type(q) is DefineSceneFile:
+                    n.scene_file = q.file
+                elif type(q) is DefineSummaryFile:
+                    n.summary_file = q.file
+                elif type(q) is DefineOutputFile:
+                    n.output_file = q.file
                 elif type(q) is DefineSummaryPrompt:
                     n.summary_prompt = q.val
                 else:
                     raise Exception
-            elif id == "system":
-                n.xs.append(__parse_system(cs))
             elif id == "main":
                 n.xs.append(__parse_main(cs))
             elif id == "user":
                 n.xs.append(__parse_user(cs))
+            elif id == "assistant":
+                cs.skip_ws()
+                num = __parse_number(cs)
+                n.xs.append(Assistant(num, []))
+            elif id == "fakeassistant":
+                n.xs.append(__parse_assistant(cs))
+            elif id == "reset":
+                n.xs.append(Reset(0))
+            elif id == "summarize":
+                n.xs.append(Summarize(0))
             else:
                 raise Exception(f"Unknown instruction {id}")
         else:
-            raise Exception(f"Expected: \define \\user \main \\reset: {cs.xx[cs.i :]}")
+            raise Exception(
+                f"Expected: \define \\user \main \\fakeassistant \summarize \\reset: {cs.xx[cs.i :]}"
+            )
 
     __parse_file_includes(n)
 
